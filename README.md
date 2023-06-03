@@ -2,6 +2,8 @@
 
 Objective: Build an app that is functionally similar to this: <https://treemap-diagram.freecodecamp.rocks>.
 
+Final Project: <https://fcc-treemap-diagram--lydia-stephenson.repl.co/>
+
 Fulfill the below user stories and get all of the tests to pass. Use whichever libraries or APIs you need. Give it your own personal style.
 
 1. My tree map should have a title with a corresponding id="title".

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualize Data with a Treemap Diagram</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Barlow', sans-serif;
+            background-color: #E6E8E6;
+            color: #2B2C28;
+        }
+        #graph {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-evenly;
+            align-items: center;
+        }
+        #tooltip {
+            background-color: #C1DFF0;
+            padding: 0.5rem;
+            border-radius: 5px;
+            text-align: center;
+            font-size: 0.75rem;
+        }
+        #container {
+            display: flex;
+            justify-content: space-evenly;
+            height: 80vh;
+            margin-bottom: 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="graph"></div>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.freecodecamp.org/testable-projects-fcc/v1/bundle.js"></script>
+    <script>
+        const margin = {top: 50, left: 50, bottom: 50, right: 50}
+        const height = 550 - margin.top - margin.bottom;
+        const width = 1100 - margin.left - margin.right;
+        const colours = [
+            "#f94144", "#f3722c", "#f8961e", "#f9c74f", "#90be6d", "#43aa8b", "#577590"
+        ];
+
+        // ADD TITLE TO GRAPH
+        d3.select("#graph")
+        .append("h1")
+        .text("Movie Sales")
+        .attr("id", "title")
+        .style("margin-bottom", 0);
+
+        // ADD DESCRIPTION TO GRAPH
+        d3.select("#graph")
+        .append("p")
+        .text("Top 100 Highest Grossing Movies Grouped By Genre")
+        .attr("id", "description")
+        .style("margin-top", 0);
+
+        d3.select("#graph")
+        .append("div")
+        .attr("id", "container");
+
+        // ADD TOOLTIP TO GRAPH
+        const tooltip = d3
+        .select("#graph")
+        .append("div")
+        .attr("id", "tooltip")
+        .style("opacity", 0)
+        .style("position", "absolute");
+
+        // CREATE SVG IN GRAPH
+        const svg = d3
+        .select("#container")
+        .append("svg")
+        .attr("width", width + margin.right)
+        .attr("height", height + margin.top + margin.bottom);
+
+        d3.json("https://cdn.freecodecamp.org/testable-projects-fcc/data/tree_map/movie-data.json")
+        .then(data => {
+            const root = d3.hierarchy(data).sum((d) => { return d.value });
+            const categories = data.children.map((i) => i.name);
+
+            d3.treemap()
+                .round(false)
+                .size([width, height])
+                .padding(1)
+                (root);
+
+            svg.selectAll("rect")
+                .data(root.leaves())
+                .enter()
+                .append("rect")
+                .attr("x", (d) => d.x0)
+                .attr("y", (d) => d.y0)
+                .attr("width", (d) => d.x1 - d.x0)
+                .attr("height", (d) => d.y1 - d.y0)
+                .attr("class", "tile")
+                .attr("data-name", (d) => d.data.name)
+                .attr("data-category", (d) => d.data.category)
+                .attr("data-value", (d) => d.data.value)
+                .style("fill", (d) => colours[categories.indexOf(d.data.category)])
+                .style("cursor", "pointer")
+                .on("mouseover", (e, d) => {
+                    tooltip.transition().duration(100).style("opacity", 0.9);
+                    
+                    tooltip.html(`Name: ${d.data.name}<br>Category: ${d.data.category}<br>Value: ${d.value}`)
+                    .style("top", e.pageY - 30 + "px")
+                    .style("left", e.pageX + 10 + "px")
+                    .attr("data-value", d.value)
+                })
+                .on("mouseout", (e, d) => {
+                    tooltip.transition().duration(200).style("opacity", 0);
+                });
+
+            svg.selectAll("text")
+                .data(root.leaves())
+                .enter()
+                .append("text")
+                .selectAll("tspan")
+                .data(d => {
+                    return d.data.name.split(/(?=[A-Z][^A-Z])/g)
+                    .map(v => {
+                        return {
+                            text: v,
+                            x0: d.x0,
+                            y0: d.y0
+                        }
+                    });
+                })
+                .enter()
+                .append("tspan")
+                .attr("x", (d) => d.x0 + 5)
+                .attr("y", (d, i) => d.y0 + 10 + (i * 7))
+                .text((d) => d.text)
+                .style("font-size", "8px")
+                .style("fill", "#E6E8E6");
+
+            // ADD LEGEND TO GRAPH
+            const legend = d3
+                .select("#container")
+                .append("svg")
+                .attr("id", "legend")
+                .attr("width", "10%");
+
+            legend.selectAll("rect")
+                .data(colours).enter()
+                .append("rect")
+                .attr("width", 15)
+                .attr("height", 15)
+                .attr("x", 10)
+                .attr("y", (d, i) => 15 * i)
+                .attr("class", "legend-item")
+                .style("fill", (d) => d)
+                .style("stroke", "#2B2C28")
+                .style("stroke-width", 0.5);
+
+            legend.selectAll("text")
+                .data(categories).enter()
+                .append("text")
+                .text((d) => d)
+                .attr("y", (d, i) => 15 * i + 10)
+                .attr("x", 30)
+                .style("font-size", "8px");
+        })
+        .catch(e => console.log(e));
+    </script>
+</body>
+</html>
